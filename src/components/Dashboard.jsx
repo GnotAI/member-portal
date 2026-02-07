@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
-import { Plus, X, Loader2, FileText, Calendar, ChevronRight, Download, DollarSign, Trash2 } from 'lucide-react'
+import { Plus, X, Loader2, FileText, Calendar, ChevronRight, Download, DollarSign, Trash2, Edit2 } from 'lucide-react'
 
 export default function Dashboard({ session }) {
     const [projects, setProjects] = useState([])
@@ -12,6 +12,9 @@ export default function Dashboard({ session }) {
     const [userProfile, setUserProfile] = useState({ full_name: '', company_name: '' })
     const [updatingProfile, setUpdatingProfile] = useState(false)
     const [totalDue, setTotalDue] = useState(0)
+    const [isEditingProject, setIsEditingProject] = useState(false)
+    const [editingProject, setEditingProject] = useState({ id: '', title: '', description: '' })
+    const [updatingProject, setUpdatingProject] = useState(false)
 
     // Fetch function extracted for reuse
     const fetchProjects = async () => {
@@ -102,6 +105,25 @@ export default function Dashboard({ session }) {
         } else {
             fetchProjects()
         }
+    }
+
+    const handleUpdateProject = async (e) => {
+        e.preventDefault()
+        setUpdatingProject(true)
+        const { error } = await supabase.from('projects')
+            .update({
+                title: editingProject.title,
+                description: editingProject.description
+            })
+            .eq('id', editingProject.id)
+
+        if (error) {
+            alert(error.message)
+        } else {
+            setIsEditingProject(false)
+            fetchProjects()
+        }
+        setUpdatingProject(false)
     }
 
     const updateStatus = async (projectId, currentStatus) => {
@@ -216,18 +238,35 @@ export default function Dashboard({ session }) {
                                         {project.status}
                                     </button>
                                 </div>
-                                <button
-                                    onClick={() => handleDeleteProject(project.id)}
-                                    style={{
-                                        background: 'none', border: 'none', color: 'var(--danger)',
-                                        cursor: 'pointer', padding: '0.5rem', opacity: 0.6,
-                                        transition: 'all 0.2s'
-                                    }}
-                                    className="hover-opacity-100"
-                                    title="Delete Project"
-                                >
-                                    <Trash2 size={18} />
-                                </button>
+                                <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                    <button
+                                        onClick={() => {
+                                            setEditingProject({ id: project.id, title: project.title, description: project.description })
+                                            setIsEditingProject(true)
+                                        }}
+                                        style={{
+                                            background: 'none', border: 'none', color: 'var(--text-secondary)',
+                                            cursor: 'pointer', padding: '0.5rem', opacity: 0.6,
+                                            transition: 'all 0.2s'
+                                        }}
+                                        className="hover-opacity-100"
+                                        title="Edit Project"
+                                    >
+                                        <Edit2 size={18} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteProject(project.id)}
+                                        style={{
+                                            background: 'none', border: 'none', color: 'var(--danger)',
+                                            cursor: 'pointer', padding: '0.5rem', opacity: 0.6,
+                                            transition: 'all 0.2s'
+                                        }}
+                                        className="hover-opacity-100"
+                                        title="Delete Project"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+                                </div>
                             </div>
 
                             <p className="text-muted" style={{ fontSize: '0.9rem', flex: 1 }}>{project.description}</p>
@@ -355,6 +394,51 @@ export default function Dashboard({ session }) {
                                 <button type="button" className="btn btn-outline" onClick={() => setIsEditingProfile(false)}>Cancel</button>
                                 <button type="submit" className="btn btn-primary" disabled={updatingProfile}>
                                     {updatingProfile ? <Loader2 className="animate-spin" size={18} /> : 'Save Changes'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Project Modal */}
+            {isEditingProject && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(5px)',
+                    display: 'flex', justifyContent: 'center', alignItems: 'center',
+                    zIndex: 1000
+                }}>
+                    <div className="glass-panel" style={{ width: '100%', maxWidth: '500px', padding: '2rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                            <h3 style={{ margin: 0 }}>Edit Project</h3>
+                            <button onClick={() => setIsEditingProject(false)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                                <X size={24} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleUpdateProject}>
+                            <div style={{ marginBottom: '1rem' }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Project Title</label>
+                                <input
+                                    className="input-field"
+                                    value={editingProject.title}
+                                    onChange={e => setEditingProject({ ...editingProject, title: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div style={{ marginBottom: '1.5rem' }}>
+                                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Description</label>
+                                <textarea
+                                    className="input-field"
+                                    rows={4}
+                                    value={editingProject.description}
+                                    onChange={e => setEditingProject({ ...editingProject, description: e.target.value })}
+                                />
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                                <button type="button" className="btn btn-outline" onClick={() => setIsEditingProject(false)}>Cancel</button>
+                                <button type="submit" className="btn btn-primary" disabled={updatingProject}>
+                                    {updatingProject ? <Loader2 className="animate-spin" size={18} /> : 'Save Changes'}
                                 </button>
                             </div>
                         </form>
