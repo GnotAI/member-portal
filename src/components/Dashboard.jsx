@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { supabase } from '../supabaseClient'
-import { Plus, X, Loader2, FileText, Calendar, ChevronRight, Download, DollarSign } from 'lucide-react'
+import { Plus, X, Loader2, FileText, Calendar, ChevronRight, Download, DollarSign, Trash2 } from 'lucide-react'
 
 export default function Dashboard({ session }) {
     const [projects, setProjects] = useState([])
@@ -91,6 +91,17 @@ export default function Dashboard({ session }) {
             fetchProjects()
         }
         setCreating(false)
+    }
+
+    const handleDeleteProject = async (projectId) => {
+        if (!confirm('Are you sure you want to delete this project? This will also delete all associated invoices.')) return
+
+        const { error } = await supabase.from('projects').delete().eq('id', projectId)
+        if (error) {
+            alert(error.message)
+        } else {
+            fetchProjects()
+        }
     }
 
     const updateStatus = async (projectId, currentStatus) => {
@@ -205,6 +216,18 @@ export default function Dashboard({ session }) {
                                         {project.status}
                                     </button>
                                 </div>
+                                <button
+                                    onClick={() => handleDeleteProject(project.id)}
+                                    style={{
+                                        background: 'none', border: 'none', color: 'var(--danger)',
+                                        cursor: 'pointer', padding: '0.5rem', opacity: 0.6,
+                                        transition: 'all 0.2s'
+                                    }}
+                                    className="hover-opacity-100"
+                                    title="Delete Project"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
                             </div>
 
                             <p className="text-muted" style={{ fontSize: '0.9rem', flex: 1 }}>{project.description}</p>
